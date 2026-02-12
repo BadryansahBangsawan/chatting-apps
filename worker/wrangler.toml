@@ -1,0 +1,11 @@
+name = "chatroom-cf-api"
+main = "src/index.ts"
+compatibility_date = "2026-02-12"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "chatroom_messages"
+database_id = "2c95d773-c053-4fbc-b0cc-d08439fd9393"
+
+[observability.logs]
+enabled = true

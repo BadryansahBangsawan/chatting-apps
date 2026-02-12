@@ -1,0 +1,14 @@
+{
+  "name": "chatroom-cf-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create chatroom_messages",
+    "db:migrate": "wrangler d1 migrations apply chatroom_messages",
+    "db:migrate:remote": "wrangler d1 migrations apply chatroom_messages --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.64.0"
+  }
+}

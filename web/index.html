@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Room - CF Backend</title>
+    <style>
+      body { font-family: Inter, system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; background: #0b1020; color: #e8ecff; }
+      .card { background: #151b33; border: 1px solid #2a3563; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
+      input, textarea, button { width: 100%; padding: .7rem; border-radius: 8px; border: 1px solid #31407a; background: #0e1430; color: #fff; }
+      textarea { min-height: 90px; resize: vertical; }
+      button { cursor: pointer; background: #4f7cff; border: none; font-weight: 600; }
+      button:hover { opacity: .95; }
+      .msg { border-bottom: 1px solid #27325e; padding: .6rem 0; }
+      .meta { color: #9bb0ff; font-size: .85rem; }
+      .error { color: #ff9090; margin-top: .5rem; }
+      .small { font-size: .9rem; color: #b4c2ff; }
+    </style>
+  </head>
+  <body>
+    <h1>Chat Room</h1>
+    <p class="small">Frontend di Vercel • Backend + DB di Cloudflare (Worker + D1)</p>
+
+    <div class="card">
+      <label>Worker API URL</label>
+      <input id="apiUrl" placeholder="https://chatroom-cf-api.<subdomain>.workers.dev" />
+      <p class="small">Simpan URL ini di localStorage browser.</p>
+      <button id="saveApi">Simpan API URL</button>
+      <div id="apiSaved" class="small"></div>
+    </div>
+
+    <div class="card">
+      <form id="chatForm">
+        <label>Nama</label>
+        <input id="name" maxlength="40" required />
+        <br /><br />
+        <label>Pesan</label>
+        <textarea id="message" maxlength="500" required></textarea>
+        <br />
+        <button type="submit">Kirim</button>
+        <div id="error" class="error"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Pesan Terbaru</h3>
+      <div id="list"></div>
+    </div>
+
+    <script>
+      const apiUrlEl = document.getElementById('apiUrl');
+      const apiSaved = document.getElementById('apiSaved');
+      const saveApi = document.getElementById('saveApi');
+      const form = document.getElementById('chatForm');
+      const errorEl = document.getElementById('error');
+      const listEl = document.getElementById('list');
+
+      const DEFAULT_API_URL = 'https://chatroom-cf-api.badryansah99.workers.dev';
+      const stored = localStorage.getItem('CHAT_API_URL') || DEFAULT_API_URL;
+      apiUrlEl.value = stored;
+      if (!localStorage.getItem('CHAT_API_URL')) {
+        localStorage.setItem('CHAT_API_URL', DEFAULT_API_URL);
+      }
+
+      function getBase() {
+        return (localStorage.getItem('CHAT_API_URL') || '').replace(/\/$/, '');
+      }
+
+      saveApi.onclick = () => {
+        const v = apiUrlEl.value.trim().replace(/\/$/, '');
+        localStorage.setItem('CHAT_API_URL', v);
+        apiSaved.textContent = v ? 'API URL tersimpan ✅' : 'API URL dikosongkan';
+        loadMessages();
+      };
+
+      async function loadMessages() {
+        const base = getBase();
+        if (!base) {
+          listEl.innerHTML = '<p class="small">Isi dulu Worker API URL.</p>';
+          return;
+        }
+        try {
+          const res = await fetch(base + '/api/messages');
+          const data = await res.json();
+          const arr = data.messages || [];
+          listEl.innerHTML = arr.map(m => `
+            <div class="msg">
+              <div><strong>${escapeHtml(m.name)}</strong></div>
+              <div>${escapeHtml(m.message)}</div>
+              <div class="meta">${new Date(m.created_at).toLocaleString()}</div>
+            </div>
+          `).join('') || '<p class="small">Belum ada pesan.</p>';
+        } catch (e) {
+          listEl.innerHTML = '<p class="error">Gagal load messages.</p>';
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        errorEl.textContent = '';
+
+        const base = getBase();
+        if (!base) {
+          errorEl.textContent = 'Isi Worker API URL dulu.';
+          return;
+        }
+
+        const payload = {
+          name: document.getElementById('name').value.trim(),
+          message: document.getElementById('message').value.trim(),
+        };
+
+        try {
+          const res = await fetch(base + '/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Gagal kirim');
+          document.getElementById('message').value = '';
+          loadMessages();
+        } catch (err) {
+          errorEl.textContent = err.message || 'Gagal kirim pesan';
+        }
+      };
+
+      loadMessages();
+      setInterval(loadMessages, 5000);
+    </script>
+  </body>
+</html>
