@@ -505,7 +505,10 @@
       });
 
       function getBase() {
-        return (localStorage.getItem('CHAT_API_URL') || '').replace(/\/$/, '');
+        const raw = (localStorage.getItem('CHAT_API_URL') || DEFAULT_API_URL).trim();
+        if (!raw) return DEFAULT_API_URL;
+        const normalized = raw.replace(/\/$/, '');
+        return /^https?:\/\//i.test(normalized) ? normalized : `https://${normalized}`;
       }
 
       saveApi.onclick = () => {
@@ -574,7 +577,10 @@
 
         try {
           const res = await fetch(base + '/api/messages');
-          const data = await res.json();
+          const text = await res.text();
+          let data = {};
+          try { data = text ? JSON.parse(text) : {}; } catch { throw new Error('API response is not valid JSON'); }
+          if (!res.ok) throw new Error(data.error || 'Failed to load messages');
           const arr = data.messages || [];
 
           if (arr.length === 0) {
@@ -605,7 +611,10 @@
 
           messagesArea.scrollTop = messagesArea.scrollHeight;
         } catch (e) {
-          // Silent fail on auto-refresh
+          listEl.innerHTML = `
+            <div class="empty-state">
+              <p>Failed to load chat. Check Worker API URL / internet connection.</p>
+            </div>`;
         }
       }
 
@@ -629,13 +638,26 @@
         sendBtn.style.pointerEvents = 'none';
 
         try {
+          const optimisticTime = new Date().toISOString();
+          listEl.insertAdjacentHTML('beforeend', `
+            <div class="msg msg-self">
+              <div class="msg-bubble">
+                <div class="msg-text">${escapeHtml(message)}</div>
+              </div>
+              <div class="msg-time">${formatTime(optimisticTime)}</div>
+            </div>
+          `);
+          messagesArea.scrollTop = messagesArea.scrollHeight;
+
           const res = await fetch(base + '/api/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, message }),
           });
 
-          const data = await res.json();
+          const text = await res.text();
+          let data = {};
+          try { data = text ? JSON.parse(text) : {}; } catch { throw new Error('API response is not valid JSON'); }
           if (!res.ok) throw new Error(data.error || 'Failed to send');
 
           messageEl.value = '';
@@ -644,6 +666,7 @@
           loadMessages();
         } catch (err) {
           showError(err.message || 'Failed to send message');
+          loadMessages();
         } finally {
           sendBtn.style.opacity = '';
           sendBtn.style.pointerEvents = '';
