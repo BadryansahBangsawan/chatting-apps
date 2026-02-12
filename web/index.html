@@ -3,256 +3,492 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat Room - CF Backend</title>
+    <title>Chat Room</title>
     <style>
       :root {
-        --bg: #09090b;
-        --card: #111113;
-        --card-2: #18181b;
-        --muted: #a1a1aa;
-        --text: #fafafa;
-        --border: #27272a;
-        --primary: #fafafa;
-        --primary-text: #111113;
-        --ring: #3f3f46;
+        --bg: #000000;
+        --surface: rgba(28, 28, 30, 1);
+        --surface-2: rgba(44, 44, 46, 1);
+        --surface-3: rgba(58, 58, 60, 1);
+        --elevated: rgba(28, 28, 30, 0.72);
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --text-tertiary: #6e6e73;
+        --separator: rgba(84, 84, 88, 0.36);
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --green: #30d158;
+        --red: #ff453a;
+        --radius: 16px;
+        --radius-sm: 12px;
+        --radius-xs: 10px;
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
       body {
-        margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-        background: radial-gradient(1200px 500px at 20% -10%, #1f1f2e, transparent),
-          radial-gradient(800px 400px at 90% 10%, #1d2030, transparent),
-          var(--bg);
-        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+          'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        min-height: 100dvh;
       }
 
-      .container {
-        width: min(860px, 92vw);
-        margin: 28px auto;
-      }
-
-      .title-wrap {
-        margin-bottom: 18px;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: clamp(1.2rem, 2.4vw, 1.8rem);
-        letter-spacing: -0.02em;
-      }
-
-      .sub {
-        margin-top: 6px;
-        color: var(--muted);
-        font-size: 0.95rem;
-      }
-
-      .grid {
-        display: grid;
-        gap: 14px;
-      }
-
-      .card {
-        background: color-mix(in oklab, var(--card), black 6%);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 30px rgba(0,0,0,0.35);
-        overflow: hidden;
-      }
-
-      .card-header {
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--border);
+      /* ── Layout ── */
+      .app {
+        width: min(680px, 100vw);
+        margin: 0 auto;
+        min-height: 100dvh;
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
+      }
+
+      /* ── Header ── */
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 16px 20px;
+        background: rgba(0, 0, 0, 0.72);
+        -webkit-backdrop-filter: saturate(180%) blur(20px);
+        backdrop-filter: saturate(180%) blur(20px);
+        border-bottom: 0.5px solid var(--separator);
+      }
+
+      .header-inner {
+        display: flex;
         align-items: center;
+        justify-content: space-between;
       }
 
-      .card-title {
-        font-size: 0.95rem;
-        font-weight: 600;
-        letter-spacing: -0.01em;
+      .header h1 {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
       }
 
-      .badge {
-        display: inline-flex;
+      .header-badge {
+        display: flex;
         align-items: center;
         gap: 6px;
         font-size: 12px;
-        color: #d4d4d8;
-        border: 1px solid #3f3f46;
-        background: #18181b;
-        border-radius: 999px;
-        padding: 5px 10px;
+        font-weight: 500;
+        color: var(--text-secondary);
       }
 
-      .card-body {
-        padding: 16px;
+      .header-badge .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 6px rgba(48, 209, 88, 0.5);
       }
 
-      label {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 0.84rem;
-        color: #d4d4d8;
+      /* ── Messages Area ── */
+      .messages-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 20px 20px;
+        -webkit-overflow-scrolling: touch;
       }
 
-      .row {
-        display: grid;
-        gap: 10px;
+      .messages-area::-webkit-scrollbar {
+        width: 0;
       }
 
-      .row-2 {
-        grid-template-columns: 1fr auto;
+      .date-divider {
+        text-align: center;
+        padding: 16px 0 8px;
       }
 
-      input, textarea {
-        width: 100%;
-        border: 1px solid var(--border);
-        background: var(--card-2);
-        color: var(--text);
-        border-radius: 10px;
-        padding: 10px 12px;
-        outline: none;
-        transition: border-color .15s ease, box-shadow .15s ease;
+      .date-divider span {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-tertiary);
+        background: rgba(44, 44, 46, 0.6);
+        padding: 4px 12px;
+        border-radius: 20px;
       }
 
-      input:focus, textarea:focus {
-        border-color: var(--ring);
-        box-shadow: 0 0 0 3px rgba(63,63,70,.35);
-      }
-
-      textarea {
-        resize: vertical;
-        min-height: 98px;
-      }
-
-      .btn {
-        border: 1px solid var(--border);
-        background: var(--card-2);
-        color: var(--text);
-        border-radius: 10px;
-        padding: 10px 14px;
-        cursor: pointer;
-        font-weight: 600;
-      }
-
-      .btn:hover { filter: brightness(1.06); }
-
-      .btn-primary {
-        background: var(--primary);
-        color: var(--primary-text);
-        border-color: #e4e4e7;
-      }
-
-      .small { font-size: .84rem; color: var(--muted); }
-      .ok { color: #86efac; }
-      .error { color: #fca5a5; margin-top: 8px; font-size: .88rem; }
-
-      .messages {
-        max-height: 420px;
-        overflow: auto;
-        padding-right: 6px;
-      }
-
+      /* ── Message Bubble ── */
       .msg {
-        background: #141417;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 6px;
+        animation: msgIn 0.3s ease-out both;
+      }
+
+      @keyframes msgIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      .msg-bubble {
+        max-width: 85%;
+        background: var(--surface);
+        border-radius: 18px;
+        padding: 10px 14px;
+        position: relative;
+      }
+
+      .msg-self .msg-bubble {
+        background: var(--accent);
+        align-self: flex-end;
+        border-bottom-right-radius: 6px;
+      }
+
+      .msg-other .msg-bubble {
+        align-self: flex-start;
+        border-bottom-left-radius: 6px;
+      }
+
+      .msg-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 2px;
+      }
+
+      .msg-self .msg-name {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .msg-text {
+        font-size: 15px;
+        line-height: 1.4;
+        color: var(--text-primary);
+        word-break: break-word;
+      }
+
+      .msg-time {
+        font-size: 11px;
+        color: var(--text-tertiary);
+        margin-top: 4px;
+        padding: 0 4px;
+      }
+
+      .msg-self .msg-time {
+        text-align: right;
+      }
+
+      .msg-other .msg-time {
+        text-align: left;
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        gap: 12px;
+        color: var(--text-tertiary);
+      }
+
+      .empty-state svg {
+        width: 48px;
+        height: 48px;
+        opacity: 0.3;
+      }
+
+      .empty-state p {
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      /* ── Composer ── */
+      .composer-wrap {
+        position: sticky;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.72);
+        -webkit-backdrop-filter: saturate(180%) blur(20px);
+        backdrop-filter: saturate(180%) blur(20px);
+        border-top: 0.5px solid var(--separator);
+        padding: 12px 20px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+
+      .composer-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         margin-bottom: 10px;
       }
 
-      .msg-top {
+      .composer-name input {
+        flex: 1;
+        background: var(--surface);
+        border: none;
+        border-radius: var(--radius-xs);
+        padding: 10px 14px;
+        font-size: 15px;
+        color: var(--text-primary);
+        outline: none;
+        transition: background 0.2s ease;
+      }
+
+      .composer-name input:focus {
+        background: var(--surface-2);
+      }
+
+      .composer-name input::placeholder {
+        color: var(--text-tertiary);
+      }
+
+      .composer-row {
         display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 4px;
+        align-items: flex-end;
+        gap: 8px;
       }
 
-      .name { font-size: .9rem; font-weight: 600; }
-      .time { font-size: .74rem; color: var(--muted); white-space: nowrap; }
-      .text { color: #e4e4e7; line-height: 1.45; word-break: break-word; }
+      .composer-input-wrap {
+        flex: 1;
+        background: var(--surface);
+        border-radius: 22px;
+        padding: 4px 6px 4px 16px;
+        display: flex;
+        align-items: flex-end;
+        transition: background 0.2s ease;
+        min-height: 44px;
+      }
 
-      .footer-note {
+      .composer-input-wrap:focus-within {
+        background: var(--surface-2);
+      }
+
+      .composer-input-wrap textarea {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        font-size: 15px;
+        font-family: inherit;
+        line-height: 1.4;
+        padding: 8px 0;
+        resize: none;
+        outline: none;
+        max-height: 120px;
+        min-height: 22px;
+      }
+
+      .composer-input-wrap textarea::placeholder {
+        color: var(--text-tertiary);
+      }
+
+      .send-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: none;
+        background: var(--accent);
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-bottom: 1px;
+        transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+        opacity: 0.4;
+      }
+
+      .send-btn.active {
+        opacity: 1;
+      }
+
+      .send-btn.active:hover {
+        background: var(--accent-hover);
+        transform: scale(1.05);
+      }
+
+      .send-btn.active:active {
+        transform: scale(0.95);
+      }
+
+      .send-btn svg {
+        width: 17px;
+        height: 17px;
+        margin-left: 1px;
+      }
+
+      .error-toast {
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        background: var(--red);
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 10px 20px;
+        border-radius: 12px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        z-index: 200;
+      }
+
+      .error-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* ── Settings (hidden) ── */
+      .settings-panel {
+        display: none;
+        padding: 16px 20px;
+        border-bottom: 0.5px solid var(--separator);
+        background: var(--surface);
+        animation: slideDown 0.25s ease-out;
+      }
+
+      @keyframes slideDown {
+        from { opacity: 0; max-height: 0; }
+        to   { opacity: 1; max-height: 200px; }
+      }
+
+      .settings-panel.visible {
+        display: block;
+      }
+
+      .settings-panel label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      .settings-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      .settings-row input {
+        flex: 1;
+        background: var(--surface-2);
+        border: none;
+        border-radius: var(--radius-xs);
+        padding: 10px 14px;
+        font-size: 14px;
+        color: var(--text-primary);
+        outline: none;
+      }
+
+      .settings-row button {
+        background: var(--surface-3);
+        border: none;
+        border-radius: var(--radius-xs);
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      .settings-row button:hover {
+        background: rgba(72, 72, 74, 1);
+      }
+
+      .settings-saved {
+        font-size: 13px;
+        color: var(--green);
         margin-top: 8px;
-        text-align: center;
-        font-size: .78rem;
-        color: #71717a;
+        min-height: 20px;
       }
 
-      @media (max-width: 640px) {
-        .row-2 { grid-template-columns: 1fr; }
-        .card-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+      /* ── Responsive ── */
+      @media (max-width: 680px) {
+        .app {
+          width: 100%;
+        }
+      }
+
+      /* ── Custom scrollbar for desktop ── */
+      @media (pointer: fine) {
+        .messages-area::-webkit-scrollbar {
+          width: 6px;
+        }
+        .messages-area::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .messages-area::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 3px;
+        }
+        .messages-area::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
       }
     </style>
   </head>
   <body>
-    <main class="container">
-      <div class="title-wrap">
-        <h1>Chat Room</h1>
-        <p class="sub">Dark UI • Frontend on Vercel • Backend + DB on Cloudflare (Worker + D1)</p>
+    <div class="app">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-inner">
+          <h1>Chat Room</h1>
+          <div class="header-badge">
+            <span class="dot"></span>
+            Live
+          </div>
+        </div>
+      </header>
+
+      <!-- Connection Settings (hidden by default) -->
+      <div id="settingsPanel" class="settings-panel">
+        <label for="apiUrl">Worker API URL</label>
+        <div class="settings-row">
+          <input id="apiUrl" placeholder="https://chatroom-cf-api.<subdomain>.workers.dev" />
+          <button id="saveApi">Save</button>
+        </div>
+        <div id="apiSaved" class="settings-saved"></div>
       </div>
 
-      <section class="grid">
-        <article class="card">
-          <div class="card-header">
-            <div class="card-title">Connection</div>
-            <span class="badge">⚡ Cloudflare Worker API</span>
-          </div>
-          <div class="card-body row">
-            <label for="apiUrl">Worker API URL</label>
-            <div class="row row-2">
-              <input id="apiUrl" placeholder="https://chatroom-cf-api.<subdomain>.workers.dev" />
-              <button id="saveApi" class="btn">Save</button>
-            </div>
-            <div id="apiSaved" class="small"></div>
-          </div>
-        </article>
+      <!-- Messages -->
+      <div id="messagesArea" class="messages-area">
+        <div id="list"></div>
+      </div>
 
-        <article class="card">
-          <div class="card-header">
-            <div class="card-title">Send Message</div>
+      <!-- Composer -->
+      <div class="composer-wrap">
+        <div class="composer-name">
+          <input id="name" maxlength="40" placeholder="Your name" required />
+        </div>
+        <div class="composer-row">
+          <div class="composer-input-wrap">
+            <textarea id="message" maxlength="500" rows="1" placeholder="Message" required></textarea>
+            <button id="sendBtn" class="send-btn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
           </div>
-          <div class="card-body">
-            <form id="chatForm" class="row">
-              <div>
-                <label for="name">Name</label>
-                <input id="name" maxlength="40" required placeholder="Your name" />
-              </div>
-              <div>
-                <label for="message">Message</label>
-                <textarea id="message" maxlength="500" required placeholder="Type your message..."></textarea>
-              </div>
-              <button type="submit" class="btn btn-primary">Send</button>
-              <div id="error" class="error"></div>
-            </form>
-          </div>
-        </article>
+        </div>
+      </div>
+    </div>
 
-        <article class="card">
-          <div class="card-header">
-            <div class="card-title">Latest Messages</div>
-            <span class="small">auto refresh 5s</span>
-          </div>
-          <div class="card-body">
-            <div id="list" class="messages"></div>
-          </div>
-        </article>
-      </section>
-
-      <p class="footer-note">Built with simple static frontend + Cloudflare API</p>
-    </main>
+    <!-- Error Toast -->
+    <div id="errorToast" class="error-toast"></div>
 
     <script>
       const apiUrlEl = document.getElementById('apiUrl');
       const apiSaved = document.getElementById('apiSaved');
       const saveApi = document.getElementById('saveApi');
-      const form = document.getElementById('chatForm');
-      const errorEl = document.getElementById('error');
+      const nameEl = document.getElementById('name');
+      const messageEl = document.getElementById('message');
+      const sendBtn = document.getElementById('sendBtn');
       const listEl = document.getElementById('list');
+      const errorToast = document.getElementById('errorToast');
+      const messagesArea = document.getElementById('messagesArea');
 
       const DEFAULT_API_URL = 'https://chatroom-cf-api.badryansah99.workers.dev';
       const stored = localStorage.getItem('CHAT_API_URL') || DEFAULT_API_URL;
@@ -261,6 +497,13 @@
         localStorage.setItem('CHAT_API_URL', DEFAULT_API_URL);
       }
 
+      // Restore saved name
+      const savedName = localStorage.getItem('CHAT_USER_NAME') || '';
+      nameEl.value = savedName;
+      nameEl.addEventListener('input', () => {
+        localStorage.setItem('CHAT_USER_NAME', nameEl.value);
+      });
+
       function getBase() {
         return (localStorage.getItem('CHAT_API_URL') || '').replace(/\/$/, '');
       }
@@ -268,39 +511,32 @@
       saveApi.onclick = () => {
         const v = apiUrlEl.value.trim().replace(/\/$/, '');
         localStorage.setItem('CHAT_API_URL', v);
-        apiSaved.textContent = v ? 'API URL saved ✅' : 'API URL cleared';
-        apiSaved.classList.add('ok');
+        apiSaved.textContent = v ? 'Saved' : 'Cleared';
+        setTimeout(() => { apiSaved.textContent = ''; }, 2000);
         loadMessages();
       };
 
-      async function loadMessages() {
-        const base = getBase();
-        if (!base) {
-          listEl.innerHTML = '<p class="small">Please set Worker API URL first.</p>';
-          return;
-        }
-        try {
-          const res = await fetch(base + '/api/messages');
-          const data = await res.json();
-          const arr = data.messages || [];
+      // Auto-resize textarea
+      messageEl.addEventListener('input', () => {
+        messageEl.style.height = 'auto';
+        messageEl.style.height = Math.min(messageEl.scrollHeight, 120) + 'px';
+        sendBtn.classList.toggle('active', messageEl.value.trim().length > 0);
+      });
 
-          listEl.innerHTML = arr.map(m => {
-            const dt = new Date(m.created_at);
-            return `
-              <div class="msg">
-                <div class="msg-top">
-                  <div class="name">${escapeHtml(m.name)}</div>
-                  <div class="time">${dt.toLocaleString()}</div>
-                </div>
-                <div class="text">${escapeHtml(m.message)}</div>
-              </div>
-            `;
-          }).join('') || '<p class="small">No messages yet.</p>';
-
-          listEl.scrollTop = listEl.scrollHeight;
-        } catch (e) {
-          listEl.innerHTML = '<p class="error">Failed to load messages.</p>';
+      // Send on Enter (Shift+Enter for newline)
+      messageEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
         }
+      });
+
+      sendBtn.addEventListener('click', sendMessage);
+
+      function showError(msg) {
+        errorToast.textContent = msg;
+        errorToast.classList.add('show');
+        setTimeout(() => { errorToast.classList.remove('show'); }, 3000);
       }
 
       function escapeHtml(str) {
@@ -312,37 +548,107 @@
           .replaceAll("'", '&#039;');
       }
 
-      form.onsubmit = async (e) => {
-        e.preventDefault();
-        errorEl.textContent = '';
+      function formatTime(dateStr) {
+        const dt = new Date(dateStr);
+        const now = new Date();
+        const isToday = dt.toDateString() === now.toDateString();
+        const time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (isToday) return time;
+        return dt.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + time;
+      }
 
+      let currentUserName = '';
+
+      async function loadMessages() {
         const base = getBase();
         if (!base) {
-          errorEl.textContent = 'Please set Worker API URL first.';
+          listEl.innerHTML = `
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+              </svg>
+              <p>Configure API URL in settings</p>
+            </div>`;
           return;
         }
 
-        const payload = {
-          name: document.getElementById('name').value.trim(),
-          message: document.getElementById('message').value.trim(),
-        };
+        try {
+          const res = await fetch(base + '/api/messages');
+          const data = await res.json();
+          const arr = data.messages || [];
+
+          if (arr.length === 0) {
+            listEl.innerHTML = `
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/>
+                </svg>
+                <p>No messages yet. Say something!</p>
+              </div>`;
+            return;
+          }
+
+          currentUserName = nameEl.value.trim();
+
+          listEl.innerHTML = arr.map(m => {
+            const isSelf = currentUserName && m.name === currentUserName;
+            return `
+              <div class="msg ${isSelf ? 'msg-self' : 'msg-other'}">
+                <div class="msg-bubble">
+                  ${!isSelf ? `<div class="msg-name">${escapeHtml(m.name)}</div>` : ''}
+                  <div class="msg-text">${escapeHtml(m.message)}</div>
+                </div>
+                <div class="msg-time">${formatTime(m.created_at)}</div>
+              </div>
+            `;
+          }).join('');
+
+          messagesArea.scrollTop = messagesArea.scrollHeight;
+        } catch (e) {
+          // Silent fail on auto-refresh
+        }
+      }
+
+      async function sendMessage() {
+        const base = getBase();
+        const name = nameEl.value.trim();
+        const message = messageEl.value.trim();
+
+        if (!base) {
+          showError('Set the API URL first');
+          return;
+        }
+        if (!name) {
+          showError('Enter your name');
+          nameEl.focus();
+          return;
+        }
+        if (!message) return;
+
+        sendBtn.style.opacity = '0.4';
+        sendBtn.style.pointerEvents = 'none';
 
         try {
           const res = await fetch(base + '/api/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({ name, message }),
           });
 
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Failed to send');
 
-          document.getElementById('message').value = '';
+          messageEl.value = '';
+          messageEl.style.height = 'auto';
+          sendBtn.classList.remove('active');
           loadMessages();
         } catch (err) {
-          errorEl.textContent = err.message || 'Failed to send message';
+          showError(err.message || 'Failed to send message');
+        } finally {
+          sendBtn.style.opacity = '';
+          sendBtn.style.pointerEvents = '';
         }
-      };
+      }
 
       loadMessages();
       setInterval(loadMessages, 5000);
