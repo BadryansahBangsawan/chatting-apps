@@ -6,28 +6,36 @@
   <title>Chat Rooms</title>
   <style>
     :root {
-      --bg:#0b0f17; --card:#131a26; --muted:#95a0b5; --text:#e8eefc;
-      --line:#263045; --blue:#4f7cff; --blue2:#355fe8; --ok:#22c55e; --warn:#ef4444;
-      --bubble:#1b2436; --self:#3b66f6;
+      --bg:#000000;
+      --card:#1c1c1e;
+      --muted:#86868b;
+      --text:#f5f5f7;
+      --line:rgba(84,84,88,.36);
+      --blue:#0a84ff;
+      --blue2:#409cff;
+      --ok:#30d158;
+      --warn:#ff453a;
+      --bubble:#2c2c2e;
+      --self:#0a84ff;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#0a0e16,#0f1624);color:var(--text)}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
     .wrap{max-width:920px;margin:0 auto;padding:16px}
-    .card{background:rgba(19,26,38,.9);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
     .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
     h1{font-size:20px;margin:0}
     .muted{color:var(--muted);font-size:12px}
     .grid{display:grid;gap:10px}
     .g2{grid-template-columns:1fr 1fr}
     input,textarea,button{font:inherit}
-    input,textarea{width:100%;background:#0f1522;border:1px solid #2a344a;color:var(--text);padding:11px 12px;border-radius:10px;outline:none}
-    input:focus,textarea:focus{border-color:#4f7cff}
+    input,textarea{width:100%;background:#2c2c2e;border:1px solid var(--line);color:var(--text);padding:11px 12px;border-radius:10px;outline:none}
+    input:focus,textarea:focus{border-color:var(--blue)}
     button{border:none;background:var(--blue);color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
     button:hover{background:var(--blue2)}
-    button.secondary{background:#232d42}
+    button.secondary{background:#3a3a3c}
     .row{display:flex;gap:8px;align-items:center}
-    .room-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border:1px solid #2a344a;border-radius:10px;margin-top:8px}
-    .badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #35508a;color:#aac2ff}
+    .room-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+    .badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:#c7c7cc}
     .hidden{display:none}
     #messages{max-height:52vh;overflow:auto;padding-right:4px;margin-top:8px}
     .msg{margin:8px 0;display:flex}
@@ -37,9 +45,9 @@
     .name{font-size:12px;opacity:.85;margin-bottom:2px}
     .meta{font-size:11px;color:var(--muted);margin-top:3px}
     .top-actions{display:flex;gap:8px;flex-wrap:wrap}
-    .composer{position:sticky;bottom:0;background:rgba(11,15,23,.92);backdrop-filter:blur(8px);padding-top:10px}
+    .composer{position:sticky;bottom:0;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);padding-top:10px}
     .tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .tabs button{background:#202a3e}
+    .tabs button{background:#2c2c2e}
     .tabs button.active{background:var(--blue)}
     .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);padding:10px 14px;border-radius:10px;background:#1f2a41;border:1px solid #33466f;display:none;z-index:50}
     .toast.show{display:block}
