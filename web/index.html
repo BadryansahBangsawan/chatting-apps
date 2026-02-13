@@ -1,87 +1,119 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chat Rooms</title>
   <style>
-    body{font-family:Arial,sans-serif;background:#0b0b0c;color:#f3f4f6;margin:0}
-    .wrap{max-width:900px;margin:0 auto;padding:16px}
-    .card{background:#151518;border:1px solid #2b2b31;border-radius:12px;padding:12px;margin-bottom:12px}
-    input,textarea,button,select{border-radius:10px;border:1px solid #34343d;background:#111;color:#fff;padding:10px}
-    input,textarea,select{width:100%}
-    button{cursor:pointer;background:#1f6feb;border:none}
-    button.ghost{background:#2a2a31}
+    :root {
+      --bg:#0b0f17; --card:#131a26; --muted:#95a0b5; --text:#e8eefc;
+      --line:#263045; --blue:#4f7cff; --blue2:#355fe8; --ok:#22c55e; --warn:#ef4444;
+      --bubble:#1b2436; --self:#3b66f6;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#0a0e16,#0f1624);color:var(--text)}
+    .wrap{max-width:920px;margin:0 auto;padding:16px}
+    .card{background:rgba(19,26,38,.9);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    h1{font-size:20px;margin:0}
+    .muted{color:var(--muted);font-size:12px}
+    .grid{display:grid;gap:10px}
+    .g2{grid-template-columns:1fr 1fr}
+    input,textarea,button{font:inherit}
+    input,textarea{width:100%;background:#0f1522;border:1px solid #2a344a;color:var(--text);padding:11px 12px;border-radius:10px;outline:none}
+    input:focus,textarea:focus{border-color:#4f7cff}
+    button{border:none;background:var(--blue);color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+    button:hover{background:var(--blue2)}
+    button.secondary{background:#232d42}
     .row{display:flex;gap:8px;align-items:center}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .muted{color:#9ca3af;font-size:12px}
-    .msg{padding:8px 10px;border-radius:10px;background:#1f1f25;margin:6px 0}
-    .msg .meta{font-size:11px;color:#9ca3af}
-    #messages{max-height:50vh;overflow:auto}
+    .room-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border:1px solid #2a344a;border-radius:10px;margin-top:8px}
+    .badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #35508a;color:#aac2ff}
     .hidden{display:none}
-    @media (max-width:680px){.grid{grid-template-columns:1fr}}
+    #messages{max-height:52vh;overflow:auto;padding-right:4px;margin-top:8px}
+    .msg{margin:8px 0;display:flex}
+    .msg.in{justify-content:flex-start}.msg.out{justify-content:flex-end}
+    .bubble{max-width:80%;padding:9px 11px;border-radius:12px;background:var(--bubble)}
+    .out .bubble{background:var(--self)}
+    .name{font-size:12px;opacity:.85;margin-bottom:2px}
+    .meta{font-size:11px;color:var(--muted);margin-top:3px}
+    .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .composer{position:sticky;bottom:0;background:rgba(11,15,23,.92);backdrop-filter:blur(8px);padding-top:10px}
+    .tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .tabs button{background:#202a3e}
+    .tabs button.active{background:var(--blue)}
+    .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);padding:10px 14px;border-radius:10px;background:#1f2a41;border:1px solid #33466f;display:none;z-index:50}
+    .toast.show{display:block}
+    .toast.err{border-color:#6b2630;background:#2a171a}
+    @media (max-width:700px){.g2{grid-template-columns:1fr}.bubble{max-width:92%}}
   </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
 <div class="wrap">
-  <h2>Chat Room</h2>
-
-  <div id="lobby" class="card">
-    <div class="row" style="justify-content:space-between">
-      <strong>Room Lobby</strong>
-      <button class="ghost" id="refreshRooms">Refresh</button>
+  <div class="card" id="lobby">
+    <div class="head">
+      <div>
+        <h1>Chat Room</h1>
+        <div class="muted">Buat room public/private, join via nama room atau invite code.</div>
+      </div>
+      <button class="secondary" id="refreshRooms">Refresh</button>
     </div>
-    <p class="muted">Buat room public/private, join pakai nama room atau invite code.</p>
 
-    <div class="card">
-      <strong>Create Room</strong>
-      <div class="grid" style="margin-top:8px">
+    <div class="tabs" style="margin-bottom:10px">
+      <button id="tabCreate" class="active">Buat Room</button>
+      <button id="tabJoin">Gabung Room</button>
+    </div>
+
+    <div id="createPane" class="card" style="margin-bottom:10px">
+      <div class="grid g2">
         <input id="createOwner" placeholder="Nama kamu (owner)" maxlength="40" />
         <input id="createName" placeholder="Nama room" maxlength="60" />
       </div>
       <div class="row" style="margin-top:8px">
         <label class="row"><input id="createPrivate" type="checkbox" style="width:auto"/> Private</label>
-        <input id="createPassword" placeholder="Password room (kalau private)" maxlength="100" />
+        <input id="createPassword" placeholder="Password room (wajib jika private)" maxlength="100" />
         <button id="createBtn">Create</button>
       </div>
     </div>
 
-    <div class="card">
-      <strong>Join Room</strong>
-      <div class="grid" style="margin-top:8px">
+    <div id="joinPane" class="card hidden" style="margin-bottom:10px">
+      <div class="grid g2">
         <input id="joinName" placeholder="Nama kamu" maxlength="40" />
         <input id="joinIdentifier" placeholder="Nama room / invite code" />
       </div>
       <div class="row" style="margin-top:8px">
-        <input id="joinPassword" placeholder="Password (kosongkan jika public)" maxlength="100" />
+        <input id="joinPassword" placeholder="Password room (kalau private)" maxlength="100" />
         <button id="joinBtn">Join</button>
       </div>
     </div>
 
     <div class="card">
-      <strong>Available Rooms</strong>
+      <strong>Daftar Room</strong>
       <div id="rooms"></div>
     </div>
   </div>
 
   <div id="chat" class="card hidden">
-    <div class="row" style="justify-content:space-between">
+    <div class="head">
       <div>
-        <strong id="roomTitle"></strong>
+        <h1 id="roomTitle">Room</h1>
         <div class="muted" id="roomMeta"></div>
       </div>
-      <div class="row">
-        <button id="regenInvite" class="ghost hidden">Regenerate Invite</button>
-        <button id="regenPassword" class="ghost hidden">Regenerate Password</button>
-        <button id="leaveBtn" class="ghost">Leave</button>
+      <div class="top-actions">
+        <button id="copyInvite" class="secondary">Copy Invite</button>
+        <button id="regenInvite" class="secondary hidden">Regenerate Invite</button>
+        <button id="regenPassword" class="secondary hidden">Ganti Password</button>
+        <button id="leaveBtn" class="secondary">Keluar</button>
       </div>
     </div>
 
     <div id="messages"></div>
 
-    <div class="row" style="margin-top:8px">
-      <textarea id="message" rows="2" maxlength="500" placeholder="Tulis pesan..."></textarea>
-      <button id="sendBtn">Send</button>
+    <div class="composer">
+      <div class="row">
+        <textarea id="message" rows="2" maxlength="500" placeholder="Tulis pesan..."></textarea>
+        <button id="sendBtn">Send</button>
+      </div>
     </div>
   </div>
 </div>
@@ -89,173 +121,136 @@
 <script>
 const DEFAULT_API_URL = 'https://chatroom-cf-api.badryansah99.workers.dev';
 const API = (localStorage.getItem('CHAT_API_URL') || DEFAULT_API_URL).replace(/\/$/, '');
-
-const state = {
-  session: JSON.parse(localStorage.getItem('CHAT_SESSION') || 'null'),
-  poll: null,
-};
-
-const el = (id) => document.getElementById(id);
+const state = { session: JSON.parse(localStorage.getItem('CHAT_SESSION') || 'null'), poll:null };
+const el = id => document.getElementById(id);
+const esc = s => String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+const ts = d => new Date(d).toLocaleString();
+const toast=(msg,err=false)=>{const t=el('toast');t.textContent=msg;t.className='toast show'+(err?' err':'');setTimeout(()=>t.className='toast',2200)};
 
 function saveSession(s){ state.session=s; localStorage.setItem('CHAT_SESSION', JSON.stringify(s)); }
 function clearSession(){ state.session=null; localStorage.removeItem('CHAT_SESSION'); }
-function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-function t(ts){ try{return new Date(ts).toLocaleString()}catch{return ts||''} }
 
-async function api(path, opt={}){
-  const res = await fetch(API + path, {headers:{'Content-Type':'application/json'}, ...opt});
-  const data = await res.json().catch(()=>({}));
-  if(!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
+async function api(path,opt={}){
+  const r = await fetch(API+path,{headers:{'content-type':'application/json'},...opt});
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error || 'Request gagal');
+  return d;
 }
 
-function showLobby(){
-  el('chat').classList.add('hidden');
-  el('lobby').classList.remove('hidden');
-  if(state.poll) clearInterval(state.poll);
-}
-
-function showChat(){
-  const s = state.session;
-  el('lobby').classList.add('hidden');
-  el('chat').classList.remove('hidden');
-  el('roomTitle').textContent = s.roomName;
-  el('roomMeta').textContent = `Invite: ${s.inviteCode} • Owner: ${s.ownerName}`;
-  el('regenInvite').classList.toggle('hidden', !s.isOwner);
-  el('regenPassword').classList.toggle('hidden', !s.isOwner);
-  loadMessages();
-  if(state.poll) clearInterval(state.poll);
-  state.poll = setInterval(loadMessages, 4000);
+function switchTab(kind){
+  const c = kind==='create';
+  el('createPane').classList.toggle('hidden', !c);
+  el('joinPane').classList.toggle('hidden', c);
+  el('tabCreate').classList.toggle('active', c);
+  el('tabJoin').classList.toggle('active', !c);
 }
 
 async function loadRooms(){
-  const data = await api('/api/rooms');
-  const rows = data.rooms || [];
-  el('rooms').innerHTML = rows.map(r => `
-    <div class="row" style="justify-content:space-between;margin-top:8px;padding:8px;border:1px solid #2b2b31;border-radius:10px">
-      <div>
-        <div><strong>${esc(r.name)}</strong> ${r.is_private ? '🔒' : '🌍'}</div>
-        <div class="muted">Invite: ${esc(r.invite_code)} • Members: ${r.member_count || 0}</div>
+  try{
+    const d = await api('/api/rooms');
+    const rooms = d.rooms||[];
+    el('rooms').innerHTML = rooms.map(r=>`
+      <div class="room-item">
+        <div>
+          <div><strong>${esc(r.name)}</strong> <span class="badge">${r.is_private?'🔒 Private':'🌍 Public'}</span></div>
+          <div class="muted">Invite: ${esc(r.invite_code)} • Owner: ${esc(r.owner_name)} • Members: ${r.member_count||0}</div>
+        </div>
+        <button class="secondary" onclick="quickJoin('${esc(r.invite_code)}')">Gabung</button>
       </div>
-      <button class="ghost" onclick="quickJoin('${esc(r.invite_code)}')">Join</button>
-    </div>
-  `).join('') || '<p class="muted">No rooms yet</p>';
+    `).join('') || '<p class="muted">Belum ada room.</p>';
+  }catch(e){ toast(e.message,true); }
 }
 
-async function loadMessages(){
-  const s = state.session;
-  if(!s) return;
-  const data = await api(`/api/messages?roomId=${s.roomId}`);
-  const arr = data.messages || [];
-  el('messages').innerHTML = arr.map(m => `
-    <div class="msg">
-      <div><strong>${esc(m.name)}</strong></div>
-      <div>${esc(m.message)}</div>
-      <div class="meta">${t(m.created_at)}</div>
-    </div>
-  `).join('');
-  el('messages').scrollTop = el('messages').scrollHeight;
+function showLobby(){
+  el('chat').classList.add('hidden'); el('lobby').classList.remove('hidden');
+  if(state.poll) clearInterval(state.poll);
+}
+function showChat(){
+  const s=state.session;
+  el('lobby').classList.add('hidden'); el('chat').classList.remove('hidden');
+  el('roomTitle').textContent=s.roomName;
+  el('roomMeta').textContent=`Invite: ${s.inviteCode} • Owner: ${s.ownerName}`;
+  el('regenInvite').classList.toggle('hidden', !s.isOwner);
+  el('regenPassword').classList.toggle('hidden', !s.isOwner);
+  loadMessages(); if(state.poll) clearInterval(state.poll); state.poll=setInterval(loadMessages,3500);
 }
 
 async function createRoom(){
   try{
-    const payload = {
-      ownerName: el('createOwner').value.trim(),
-      name: el('createName').value.trim(),
-      isPrivate: el('createPrivate').checked,
-      password: el('createPassword').value.trim(),
-    };
-    const data = await api('/api/rooms/create', {method:'POST', body: JSON.stringify(payload)});
-    saveSession({
-      roomId: data.roomId,
-      roomName: data.roomName,
-      inviteCode: data.inviteCode,
-      ownerName: data.ownerName,
-      memberName: payload.ownerName,
-      memberToken: data.memberToken,
-      isOwner: true,
-    });
-    showChat();
-    await loadRooms();
-  }catch(e){ alert(e.message); }
+    const payload={ ownerName:el('createOwner').value.trim(), name:el('createName').value.trim(), isPrivate:el('createPrivate').checked, password:el('createPassword').value.trim() };
+    const d=await api('/api/rooms/create',{method:'POST',body:JSON.stringify(payload)});
+    saveSession({roomId:d.roomId,roomName:d.roomName,inviteCode:d.inviteCode,ownerName:d.ownerName,memberName:payload.ownerName,memberToken:d.memberToken,isOwner:true});
+    toast('Room berhasil dibuat'); showChat(); loadRooms();
+  }catch(e){ toast(e.message,true); }
 }
 
 async function joinRoom(identifier){
   try{
-    const payload = {
-      memberName: el('joinName').value.trim(),
-      identifier: identifier || el('joinIdentifier').value.trim(),
-      password: el('joinPassword').value.trim(),
-    };
-    const data = await api('/api/rooms/join', {method:'POST', body: JSON.stringify(payload)});
-    saveSession({
-      roomId: data.roomId,
-      roomName: data.roomName,
-      inviteCode: data.inviteCode,
-      ownerName: data.ownerName,
-      memberName: data.memberName,
-      memberToken: data.memberToken,
-      isOwner: data.isOwner,
-    });
-    showChat();
-  }catch(e){ alert(e.message); }
+    const payload={ memberName:el('joinName').value.trim(), identifier:identifier||el('joinIdentifier').value.trim(), password:el('joinPassword').value.trim() };
+    const d=await api('/api/rooms/join',{method:'POST',body:JSON.stringify(payload)});
+    saveSession({roomId:d.roomId,roomName:d.roomName,inviteCode:d.inviteCode,ownerName:d.ownerName,memberName:d.memberName,memberToken:d.memberToken,isOwner:d.isOwner});
+    toast('Berhasil masuk room'); showChat();
+  }catch(e){ toast(e.message,true); }
+}
+
+async function loadMessages(){
+  const s=state.session; if(!s) return;
+  try{
+    const d=await api(`/api/messages?roomId=${s.roomId}`);
+    const arr=d.messages||[];
+    el('messages').innerHTML=arr.map(m=>`
+      <div class="msg ${m.name===s.memberName?'out':'in'}">
+        <div class="bubble">
+          ${m.name===s.memberName?'':`<div class="name">${esc(m.name)}</div>`}
+          <div>${esc(m.message)}</div>
+          <div class="meta">${ts(m.created_at)}</div>
+        </div>
+      </div>
+    `).join('');
+    el('messages').scrollTop=el('messages').scrollHeight;
+  }catch(e){ toast(e.message,true); }
 }
 
 async function sendMessage(){
+  const s=state.session; if(!s) return;
+  const message=el('message').value.trim(); if(!message) return;
   try{
-    const s = state.session;
-    const message = el('message').value.trim();
-    if(!message) return;
-    await api('/api/messages', {
-      method:'POST',
-      body: JSON.stringify({ roomId:s.roomId, name:s.memberName, memberToken:s.memberToken, message })
-    });
-    el('message').value='';
-    loadMessages();
-  }catch(e){ alert(e.message); }
+    await api('/api/messages',{method:'POST',body:JSON.stringify({roomId:s.roomId,name:s.memberName,memberToken:s.memberToken,message})});
+    el('message').value=''; loadMessages();
+  }catch(e){ toast(e.message,true); }
 }
 
 async function regenInvite(){
-  const s = state.session;
+  const s=state.session;
   try{
-    const data = await api(`/api/rooms/${s.roomId}/regenerate-invite`, {
-      method:'POST', body: JSON.stringify({ memberName:s.memberName, memberToken:s.memberToken })
-    });
-    s.inviteCode = data.inviteCode; saveSession(s); showChat();
-    alert('Invite code baru: ' + data.inviteCode);
-  }catch(e){ alert(e.message); }
+    const d=await api(`/api/rooms/${s.roomId}/regenerate-invite`,{method:'POST',body:JSON.stringify({memberName:s.memberName,memberToken:s.memberToken})});
+    s.inviteCode=d.inviteCode; saveSession(s); showChat(); toast('Invite code diperbarui');
+  }catch(e){ toast(e.message,true); }
 }
 
 async function regenPassword(){
-  const s = state.session;
-  const p = prompt('Password baru (min 4 karakter):');
-  if(!p) return;
+  const s=state.session; const p=prompt('Password baru (min 4 karakter):'); if(!p) return;
   try{
-    await api(`/api/rooms/${s.roomId}/regenerate-password`, {
-      method:'POST', body: JSON.stringify({ memberName:s.memberName, memberToken:s.memberToken, newPassword:p })
-    });
-    alert('Password room berhasil diganti.');
-  }catch(e){ alert(e.message); }
+    await api(`/api/rooms/${s.roomId}/regenerate-password`,{method:'POST',body:JSON.stringify({memberName:s.memberName,memberToken:s.memberToken,newPassword:p})});
+    toast('Password room diperbarui');
+  }catch(e){ toast(e.message,true); }
 }
 
-window.quickJoin = async function(code){
-  el('joinIdentifier').value = code;
-  await joinRoom(code);
-}
+window.quickJoin = (code)=>{ el('joinIdentifier').value=code; switchTab('join'); joinRoom(code); };
 
-el('refreshRooms').onclick = loadRooms;
-el('createBtn').onclick = createRoom;
-el('joinBtn').onclick = () => joinRoom();
-el('sendBtn').onclick = sendMessage;
-el('leaveBtn').onclick = () => { clearSession(); showLobby(); loadRooms(); };
-el('regenInvite').onclick = regenInvite;
-el('regenPassword').onclick = regenPassword;
-el('message').addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
+el('tabCreate').onclick=()=>switchTab('create');
+el('tabJoin').onclick=()=>switchTab('join');
+el('refreshRooms').onclick=loadRooms;
+el('createBtn').onclick=createRoom;
+el('joinBtn').onclick=()=>joinRoom();
+el('sendBtn').onclick=sendMessage;
+el('leaveBtn').onclick=()=>{clearSession();showLobby();loadRooms();};
+el('copyInvite').onclick=()=>{navigator.clipboard.writeText(state.session?.inviteCode||''); toast('Invite copied');};
+el('regenInvite').onclick=regenInvite;
+el('regenPassword').onclick=regenPassword;
+el('message').addEventListener('keydown',(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 
-(async () => {
-  await loadRooms();
-  if(state.session) showChat();
-})();
+(async()=>{ await loadRooms(); if(state.session) showChat(); })();
 </script>
 </body>
 </html>
