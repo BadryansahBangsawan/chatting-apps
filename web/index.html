@@ -1,709 +1,261 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat Room</title>
-    <style>
-      :root {
-        --bg: #000000;
-        --surface: rgba(28, 28, 30, 1);
-        --surface-2: rgba(44, 44, 46, 1);
-        --surface-3: rgba(58, 58, 60, 1);
-        --elevated: rgba(28, 28, 30, 0.72);
-        --text-primary: #f5f5f7;
-        --text-secondary: #86868b;
-        --text-tertiary: #6e6e73;
-        --separator: rgba(84, 84, 88, 0.36);
-        --accent: #0a84ff;
-        --accent-hover: #409cff;
-        --green: #30d158;
-        --red: #ff453a;
-        --radius: 16px;
-        --radius-sm: 12px;
-        --radius-xs: 10px;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat Rooms</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#0b0b0c;color:#f3f4f6;margin:0}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .card{background:#151518;border:1px solid #2b2b31;border-radius:12px;padding:12px;margin-bottom:12px}
+    input,textarea,button,select{border-radius:10px;border:1px solid #34343d;background:#111;color:#fff;padding:10px}
+    input,textarea,select{width:100%}
+    button{cursor:pointer;background:#1f6feb;border:none}
+    button.ghost{background:#2a2a31}
+    .row{display:flex;gap:8px;align-items:center}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .muted{color:#9ca3af;font-size:12px}
+    .msg{padding:8px 10px;border-radius:10px;background:#1f1f25;margin:6px 0}
+    .msg .meta{font-size:11px;color:#9ca3af}
+    #messages{max-height:50vh;overflow:auto}
+    .hidden{display:none}
+    @media (max-width:680px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Chat Room</h2>
 
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+  <div id="lobby" class="card">
+    <div class="row" style="justify-content:space-between">
+      <strong>Room Lobby</strong>
+      <button class="ghost" id="refreshRooms">Refresh</button>
+    </div>
+    <p class="muted">Buat room public/private, join pakai nama room atau invite code.</p>
 
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
-          'Helvetica Neue', Helvetica, Arial, sans-serif;
-        background: var(--bg);
-        color: var(--text-primary);
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        min-height: 100dvh;
-      }
-
-      /* ── Layout ── */
-      .app {
-        width: min(680px, 100vw);
-        margin: 0 auto;
-        min-height: 100dvh;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* ── Header ── */
-      .header {
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        padding: 16px 20px;
-        background: rgba(0, 0, 0, 0.72);
-        -webkit-backdrop-filter: saturate(180%) blur(20px);
-        backdrop-filter: saturate(180%) blur(20px);
-        border-bottom: 0.5px solid var(--separator);
-      }
-
-      .header-inner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .header h1 {
-        font-size: 20px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        color: var(--text-primary);
-      }
-
-      .header-badge {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-secondary);
-      }
-
-      .header-badge .dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--green);
-        box-shadow: 0 0 6px rgba(48, 209, 88, 0.5);
-      }
-
-      /* ── Messages Area ── */
-      .messages-area {
-        flex: 1;
-        overflow-y: auto;
-        padding: 12px 20px 20px;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .messages-area::-webkit-scrollbar {
-        width: 0;
-      }
-
-      .date-divider {
-        text-align: center;
-        padding: 16px 0 8px;
-      }
-
-      .date-divider span {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-tertiary);
-        background: rgba(44, 44, 46, 0.6);
-        padding: 4px 12px;
-        border-radius: 20px;
-      }
-
-      /* ── Message Bubble ── */
-      .msg {
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 6px;
-        animation: msgIn 0.3s ease-out both;
-      }
-
-      @keyframes msgIn {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-
-      .msg-bubble {
-        max-width: 85%;
-        background: var(--surface);
-        border-radius: 18px;
-        padding: 10px 14px;
-        position: relative;
-      }
-
-      .msg-self .msg-bubble {
-        background: var(--accent);
-        align-self: flex-end;
-        border-bottom-right-radius: 6px;
-      }
-
-      .msg-other .msg-bubble {
-        align-self: flex-start;
-        border-bottom-left-radius: 6px;
-      }
-
-      .msg-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--accent);
-        margin-bottom: 2px;
-      }
-
-      .msg-self .msg-name {
-        color: rgba(255, 255, 255, 0.85);
-      }
-
-      .msg-text {
-        font-size: 15px;
-        line-height: 1.4;
-        color: var(--text-primary);
-        word-break: break-word;
-      }
-
-      .msg-time {
-        font-size: 11px;
-        color: var(--text-tertiary);
-        margin-top: 4px;
-        padding: 0 4px;
-      }
-
-      .msg-self .msg-time {
-        text-align: right;
-      }
-
-      .msg-other .msg-time {
-        text-align: left;
-      }
-
-      .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 300px;
-        gap: 12px;
-        color: var(--text-tertiary);
-      }
-
-      .empty-state svg {
-        width: 48px;
-        height: 48px;
-        opacity: 0.3;
-      }
-
-      .empty-state p {
-        font-size: 15px;
-        font-weight: 500;
-      }
-
-      /* ── Composer ── */
-      .composer-wrap {
-        position: sticky;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.72);
-        -webkit-backdrop-filter: saturate(180%) blur(20px);
-        backdrop-filter: saturate(180%) blur(20px);
-        border-top: 0.5px solid var(--separator);
-        padding: 12px 20px;
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
-      }
-
-      .composer-name {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 10px;
-      }
-
-      .composer-name input {
-        flex: 1;
-        background: var(--surface);
-        border: none;
-        border-radius: var(--radius-xs);
-        padding: 10px 14px;
-        font-size: 15px;
-        color: var(--text-primary);
-        outline: none;
-        transition: background 0.2s ease;
-      }
-
-      .composer-name input:focus {
-        background: var(--surface-2);
-      }
-
-      .composer-name input::placeholder {
-        color: var(--text-tertiary);
-      }
-
-      .composer-row {
-        display: flex;
-        align-items: flex-end;
-        gap: 8px;
-      }
-
-      .composer-input-wrap {
-        flex: 1;
-        background: var(--surface);
-        border-radius: 22px;
-        padding: 4px 6px 4px 16px;
-        display: flex;
-        align-items: flex-end;
-        transition: background 0.2s ease;
-        min-height: 44px;
-      }
-
-      .composer-input-wrap:focus-within {
-        background: var(--surface-2);
-      }
-
-      .composer-input-wrap textarea {
-        flex: 1;
-        background: transparent;
-        border: none;
-        color: var(--text-primary);
-        font-size: 15px;
-        font-family: inherit;
-        line-height: 1.4;
-        padding: 8px 0;
-        resize: none;
-        outline: none;
-        max-height: 120px;
-        min-height: 22px;
-      }
-
-      .composer-input-wrap textarea::placeholder {
-        color: var(--text-tertiary);
-      }
-
-      .send-btn {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        border: none;
-        background: var(--accent);
-        color: white;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        margin-bottom: 1px;
-        transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
-        opacity: 0.4;
-      }
-
-      .send-btn.active {
-        opacity: 1;
-      }
-
-      .send-btn.active:hover {
-        background: var(--accent-hover);
-        transform: scale(1.05);
-      }
-
-      .send-btn.active:active {
-        transform: scale(0.95);
-      }
-
-      .send-btn svg {
-        width: 17px;
-        height: 17px;
-        margin-left: 1px;
-      }
-
-      .error-toast {
-        position: fixed;
-        top: 80px;
-        left: 50%;
-        transform: translateX(-50%) translateY(-20px);
-        background: var(--red);
-        color: white;
-        font-size: 14px;
-        font-weight: 500;
-        padding: 10px 20px;
-        border-radius: 12px;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease, transform 0.3s ease;
-        z-index: 200;
-      }
-
-      .error-toast.show {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-
-      /* ── Settings (hidden) ── */
-      .settings-panel {
-        display: none;
-        padding: 16px 20px;
-        border-bottom: 0.5px solid var(--separator);
-        background: var(--surface);
-        animation: slideDown 0.25s ease-out;
-      }
-
-      @keyframes slideDown {
-        from { opacity: 0; max-height: 0; }
-        to   { opacity: 1; max-height: 200px; }
-      }
-
-      .settings-panel.visible {
-        display: block;
-      }
-
-      .settings-panel label {
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text-secondary);
-        margin-bottom: 8px;
-        display: block;
-      }
-
-      .settings-row {
-        display: flex;
-        gap: 8px;
-      }
-
-      .settings-row input {
-        flex: 1;
-        background: var(--surface-2);
-        border: none;
-        border-radius: var(--radius-xs);
-        padding: 10px 14px;
-        font-size: 14px;
-        color: var(--text-primary);
-        outline: none;
-      }
-
-      .settings-row button {
-        background: var(--surface-3);
-        border: none;
-        border-radius: var(--radius-xs);
-        padding: 10px 16px;
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--text-primary);
-        cursor: pointer;
-        transition: background 0.15s ease;
-      }
-
-      .settings-row button:hover {
-        background: rgba(72, 72, 74, 1);
-      }
-
-      .settings-saved {
-        font-size: 13px;
-        color: var(--green);
-        margin-top: 8px;
-        min-height: 20px;
-      }
-
-      /* ── Responsive ── */
-      @media (max-width: 680px) {
-        .app {
-          width: 100%;
-        }
-      }
-
-      /* ── Custom scrollbar for desktop ── */
-      @media (pointer: fine) {
-        .messages-area::-webkit-scrollbar {
-          width: 6px;
-        }
-        .messages-area::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .messages-area::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 3px;
-        }
-        .messages-area::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.15);
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="app">
-      <!-- Header -->
-      <header class="header">
-        <div class="header-inner">
-          <h1>Chat Room</h1>
-          <div class="header-badge">
-            <span class="dot"></span>
-            Live
-          </div>
-        </div>
-      </header>
-
-      <!-- Connection Settings (hidden by default) -->
-      <div id="settingsPanel" class="settings-panel">
-        <label for="apiUrl">Worker API URL</label>
-        <div class="settings-row">
-          <input id="apiUrl" placeholder="https://chatroom-cf-api.<subdomain>.workers.dev" />
-          <button id="saveApi">Save</button>
-        </div>
-        <div id="apiSaved" class="settings-saved"></div>
+    <div class="card">
+      <strong>Create Room</strong>
+      <div class="grid" style="margin-top:8px">
+        <input id="createOwner" placeholder="Nama kamu (owner)" maxlength="40" />
+        <input id="createName" placeholder="Nama room" maxlength="60" />
       </div>
-
-      <!-- Messages -->
-      <div id="messagesArea" class="messages-area">
-        <div id="list"></div>
-      </div>
-
-      <!-- Composer -->
-      <div class="composer-wrap">
-        <div class="composer-name">
-          <input id="name" maxlength="40" placeholder="Your name" required />
-        </div>
-        <div class="composer-row">
-          <div class="composer-input-wrap">
-            <textarea id="message" maxlength="500" rows="1" placeholder="Message" required></textarea>
-            <button id="sendBtn" class="send-btn" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </button>
-          </div>
-        </div>
+      <div class="row" style="margin-top:8px">
+        <label class="row"><input id="createPrivate" type="checkbox" style="width:auto"/> Private</label>
+        <input id="createPassword" placeholder="Password room (kalau private)" maxlength="100" />
+        <button id="createBtn">Create</button>
       </div>
     </div>
 
-    <!-- Error Toast -->
-    <div id="errorToast" class="error-toast"></div>
+    <div class="card">
+      <strong>Join Room</strong>
+      <div class="grid" style="margin-top:8px">
+        <input id="joinName" placeholder="Nama kamu" maxlength="40" />
+        <input id="joinIdentifier" placeholder="Nama room / invite code" />
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="joinPassword" placeholder="Password (kosongkan jika public)" maxlength="100" />
+        <button id="joinBtn">Join</button>
+      </div>
+    </div>
 
-    <script>
-      const apiUrlEl = document.getElementById('apiUrl');
-      const apiSaved = document.getElementById('apiSaved');
-      const saveApi = document.getElementById('saveApi');
-      const nameEl = document.getElementById('name');
-      const messageEl = document.getElementById('message');
-      const sendBtn = document.getElementById('sendBtn');
-      const listEl = document.getElementById('list');
-      const errorToast = document.getElementById('errorToast');
-      const messagesArea = document.getElementById('messagesArea');
+    <div class="card">
+      <strong>Available Rooms</strong>
+      <div id="rooms"></div>
+    </div>
+  </div>
 
-      const DEFAULT_API_URL = 'https://chatroom-cf-api.badryansah99.workers.dev';
-      const stored = localStorage.getItem('CHAT_API_URL') || DEFAULT_API_URL;
-      apiUrlEl.value = stored;
-      if (!localStorage.getItem('CHAT_API_URL')) {
-        localStorage.setItem('CHAT_API_URL', DEFAULT_API_URL);
-      }
+  <div id="chat" class="card hidden">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <strong id="roomTitle"></strong>
+        <div class="muted" id="roomMeta"></div>
+      </div>
+      <div class="row">
+        <button id="regenInvite" class="ghost hidden">Regenerate Invite</button>
+        <button id="regenPassword" class="ghost hidden">Regenerate Password</button>
+        <button id="leaveBtn" class="ghost">Leave</button>
+      </div>
+    </div>
 
-      // Restore saved name
-      const savedName = localStorage.getItem('CHAT_USER_NAME') || '';
-      nameEl.value = savedName;
-      nameEl.addEventListener('input', () => {
-        localStorage.setItem('CHAT_USER_NAME', nameEl.value);
-      });
+    <div id="messages"></div>
 
-      function getBase() {
-        const raw = (localStorage.getItem('CHAT_API_URL') || DEFAULT_API_URL).trim();
-        if (!raw) return DEFAULT_API_URL;
-        const normalized = raw.replace(/\/$/, '');
-        return /^https?:\/\//i.test(normalized) ? normalized : `https://${normalized}`;
-      }
+    <div class="row" style="margin-top:8px">
+      <textarea id="message" rows="2" maxlength="500" placeholder="Tulis pesan..."></textarea>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
 
-      saveApi.onclick = () => {
-        const v = apiUrlEl.value.trim().replace(/\/$/, '');
-        localStorage.setItem('CHAT_API_URL', v);
-        apiSaved.textContent = v ? 'Saved' : 'Cleared';
-        setTimeout(() => { apiSaved.textContent = ''; }, 2000);
-        loadMessages();
-      };
+<script>
+const DEFAULT_API_URL = 'https://chatroom-cf-api.badryansah99.workers.dev';
+const API = (localStorage.getItem('CHAT_API_URL') || DEFAULT_API_URL).replace(/\/$/, '');
 
-      // Auto-resize textarea
-      messageEl.addEventListener('input', () => {
-        messageEl.style.height = 'auto';
-        messageEl.style.height = Math.min(messageEl.scrollHeight, 120) + 'px';
-        sendBtn.classList.toggle('active', messageEl.value.trim().length > 0);
-      });
+const state = {
+  session: JSON.parse(localStorage.getItem('CHAT_SESSION') || 'null'),
+  poll: null,
+};
 
-      // Send on Enter (Shift+Enter for newline)
-      messageEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
+const el = (id) => document.getElementById(id);
 
-      sendBtn.addEventListener('click', sendMessage);
+function saveSession(s){ state.session=s; localStorage.setItem('CHAT_SESSION', JSON.stringify(s)); }
+function clearSession(){ state.session=null; localStorage.removeItem('CHAT_SESSION'); }
+function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+function t(ts){ try{return new Date(ts).toLocaleString()}catch{return ts||''} }
 
-      function setSendingState(sending) {
-        isSending = sending;
-        sendBtn.disabled = sending;
-        messageEl.disabled = sending;
-        nameEl.disabled = sending;
-        if (sending) {
-          sendBtn.style.opacity = '0.7';
-          sendBtn.style.pointerEvents = 'none';
-        } else {
-          sendBtn.style.opacity = '';
-          sendBtn.style.pointerEvents = '';
-        }
-      }
+async function api(path, opt={}){
+  const res = await fetch(API + path, {headers:{'Content-Type':'application/json'}, ...opt});
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
 
-      function showError(msg) {
-        errorToast.textContent = msg;
-        errorToast.classList.add('show');
-        setTimeout(() => { errorToast.classList.remove('show'); }, 3000);
-      }
+function showLobby(){
+  el('chat').classList.add('hidden');
+  el('lobby').classList.remove('hidden');
+  if(state.poll) clearInterval(state.poll);
+}
 
-      function escapeHtml(str) {
-        return String(str)
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;')
-          .replaceAll('"', '&quot;')
-          .replaceAll("'", '&#039;');
-      }
+function showChat(){
+  const s = state.session;
+  el('lobby').classList.add('hidden');
+  el('chat').classList.remove('hidden');
+  el('roomTitle').textContent = s.roomName;
+  el('roomMeta').textContent = `Invite: ${s.inviteCode} • Owner: ${s.ownerName}`;
+  el('regenInvite').classList.toggle('hidden', !s.isOwner);
+  el('regenPassword').classList.toggle('hidden', !s.isOwner);
+  loadMessages();
+  if(state.poll) clearInterval(state.poll);
+  state.poll = setInterval(loadMessages, 4000);
+}
 
-      function formatTime(dateStr) {
-        const dt = new Date(dateStr);
-        const now = new Date();
-        const isToday = dt.toDateString() === now.toDateString();
-        const time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        if (isToday) return time;
-        return dt.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + time;
-      }
+async function loadRooms(){
+  const data = await api('/api/rooms');
+  const rows = data.rooms || [];
+  el('rooms').innerHTML = rows.map(r => `
+    <div class="row" style="justify-content:space-between;margin-top:8px;padding:8px;border:1px solid #2b2b31;border-radius:10px">
+      <div>
+        <div><strong>${esc(r.name)}</strong> ${r.is_private ? '🔒' : '🌍'}</div>
+        <div class="muted">Invite: ${esc(r.invite_code)} • Members: ${r.member_count || 0}</div>
+      </div>
+      <button class="ghost" onclick="quickJoin('${esc(r.invite_code)}')">Join</button>
+    </div>
+  `).join('') || '<p class="muted">No rooms yet</p>';
+}
 
-      let currentUserName = '';
-      let isSending = false;
+async function loadMessages(){
+  const s = state.session;
+  if(!s) return;
+  const data = await api(`/api/messages?roomId=${s.roomId}`);
+  const arr = data.messages || [];
+  el('messages').innerHTML = arr.map(m => `
+    <div class="msg">
+      <div><strong>${esc(m.name)}</strong></div>
+      <div>${esc(m.message)}</div>
+      <div class="meta">${t(m.created_at)}</div>
+    </div>
+  `).join('');
+  el('messages').scrollTop = el('messages').scrollHeight;
+}
 
-      async function loadMessages() {
-        const base = getBase();
-        if (!base) {
-          listEl.innerHTML = `
-            <div class="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
-              </svg>
-              <p>Configure API URL in settings</p>
-            </div>`;
-          return;
-        }
+async function createRoom(){
+  try{
+    const payload = {
+      ownerName: el('createOwner').value.trim(),
+      name: el('createName').value.trim(),
+      isPrivate: el('createPrivate').checked,
+      password: el('createPassword').value.trim(),
+    };
+    const data = await api('/api/rooms/create', {method:'POST', body: JSON.stringify(payload)});
+    saveSession({
+      roomId: data.roomId,
+      roomName: data.roomName,
+      inviteCode: data.inviteCode,
+      ownerName: data.ownerName,
+      memberName: payload.ownerName,
+      memberToken: data.memberToken,
+      isOwner: true,
+    });
+    showChat();
+    await loadRooms();
+  }catch(e){ alert(e.message); }
+}
 
-        try {
-          const res = await fetch(base + '/api/messages');
-          const text = await res.text();
-          let data = {};
-          try { data = text ? JSON.parse(text) : {}; } catch { throw new Error('API response is not valid JSON'); }
-          if (!res.ok) throw new Error(data.error || 'Failed to load messages');
-          const arr = data.messages || [];
+async function joinRoom(identifier){
+  try{
+    const payload = {
+      memberName: el('joinName').value.trim(),
+      identifier: identifier || el('joinIdentifier').value.trim(),
+      password: el('joinPassword').value.trim(),
+    };
+    const data = await api('/api/rooms/join', {method:'POST', body: JSON.stringify(payload)});
+    saveSession({
+      roomId: data.roomId,
+      roomName: data.roomName,
+      inviteCode: data.inviteCode,
+      ownerName: data.ownerName,
+      memberName: data.memberName,
+      memberToken: data.memberToken,
+      isOwner: data.isOwner,
+    });
+    showChat();
+  }catch(e){ alert(e.message); }
+}
 
-          if (arr.length === 0) {
-            listEl.innerHTML = `
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/>
-                </svg>
-                <p>No messages yet. Say something!</p>
-              </div>`;
-            return;
-          }
+async function sendMessage(){
+  try{
+    const s = state.session;
+    const message = el('message').value.trim();
+    if(!message) return;
+    await api('/api/messages', {
+      method:'POST',
+      body: JSON.stringify({ roomId:s.roomId, name:s.memberName, memberToken:s.memberToken, message })
+    });
+    el('message').value='';
+    loadMessages();
+  }catch(e){ alert(e.message); }
+}
 
-          currentUserName = nameEl.value.trim();
+async function regenInvite(){
+  const s = state.session;
+  try{
+    const data = await api(`/api/rooms/${s.roomId}/regenerate-invite`, {
+      method:'POST', body: JSON.stringify({ memberName:s.memberName, memberToken:s.memberToken })
+    });
+    s.inviteCode = data.inviteCode; saveSession(s); showChat();
+    alert('Invite code baru: ' + data.inviteCode);
+  }catch(e){ alert(e.message); }
+}
 
-          listEl.innerHTML = arr.map(m => {
-            const isSelf = currentUserName && m.name === currentUserName;
-            return `
-              <div class="msg ${isSelf ? 'msg-self' : 'msg-other'}">
-                <div class="msg-bubble">
-                  ${!isSelf ? `<div class="msg-name">${escapeHtml(m.name)}</div>` : ''}
-                  <div class="msg-text">${escapeHtml(m.message)}</div>
-                </div>
-                <div class="msg-time">${formatTime(m.created_at)}</div>
-              </div>
-            `;
-          }).join('');
+async function regenPassword(){
+  const s = state.session;
+  const p = prompt('Password baru (min 4 karakter):');
+  if(!p) return;
+  try{
+    await api(`/api/rooms/${s.roomId}/regenerate-password`, {
+      method:'POST', body: JSON.stringify({ memberName:s.memberName, memberToken:s.memberToken, newPassword:p })
+    });
+    alert('Password room berhasil diganti.');
+  }catch(e){ alert(e.message); }
+}
 
-          messagesArea.scrollTop = messagesArea.scrollHeight;
-        } catch (e) {
-          listEl.innerHTML = `
-            <div class="empty-state">
-              <p>Failed to load chat. Check Worker API URL / internet connection.</p>
-            </div>`;
-        }
-      }
+window.quickJoin = async function(code){
+  el('joinIdentifier').value = code;
+  await joinRoom(code);
+}
 
-      async function sendMessage() {
-        if (isSending) return;
+el('refreshRooms').onclick = loadRooms;
+el('createBtn').onclick = createRoom;
+el('joinBtn').onclick = () => joinRoom();
+el('sendBtn').onclick = sendMessage;
+el('leaveBtn').onclick = () => { clearSession(); showLobby(); loadRooms(); };
+el('regenInvite').onclick = regenInvite;
+el('regenPassword').onclick = regenPassword;
+el('message').addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
 
-        const base = getBase();
-        const name = nameEl.value.trim();
-        const message = messageEl.value.trim();
-
-        if (!base) {
-          showError('Set the API URL first');
-          return;
-        }
-        if (!name) {
-          showError('Enter your name');
-          nameEl.focus();
-          return;
-        }
-        if (!message) return;
-
-        setSendingState(true);
-
-        // optimistic bubble with subtle pending state
-        const optimisticId = `pending-${Date.now()}`;
-        const optimisticTime = new Date().toISOString();
-        listEl.insertAdjacentHTML('beforeend', `
-          <div class="msg msg-self" id="${optimisticId}" style="opacity:.72; transform: translateY(6px); transition: all .18s ease;">
-            <div class="msg-bubble">
-              <div class="msg-text">${escapeHtml(message)}</div>
-            </div>
-            <div class="msg-time">sending…</div>
-          </div>
-        `);
-        requestAnimationFrame(() => {
-          const el = document.getElementById(optimisticId);
-          if (el) {
-            el.style.opacity = '1';
-            el.style.transform = 'translateY(0)';
-          }
-        });
-        messagesArea.scrollTop = messagesArea.scrollHeight;
-
-        try {
-          const res = await fetch(base + '/api/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, message }),
-          });
-
-          const text = await res.text();
-          let data = {};
-          try { data = text ? JSON.parse(text) : {}; } catch { throw new Error('API response is not valid JSON'); }
-          if (!res.ok) throw new Error(data.error || 'Failed to send');
-
-          messageEl.value = '';
-          messageEl.style.height = 'auto';
-          sendBtn.classList.remove('active');
-
-          // replace pending by reloading canonical list
-          await loadMessages();
-        } catch (err) {
-          const pending = document.getElementById(optimisticId);
-          if (pending) pending.remove();
-          showError(err.message || 'Failed to send message');
-          await loadMessages();
-        } finally {
-          setSendingState(false);
-          messageEl.focus();
-        }
-      }
-
-      loadMessages();
-      setInterval(loadMessages, 5000);
-    </script>
-  </body>
+(async () => {
+  await loadRooms();
+  if(state.session) showChat();
+})();
+</script>
+</body>
 </html>
