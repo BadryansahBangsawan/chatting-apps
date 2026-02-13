@@ -536,6 +536,20 @@
 
       sendBtn.addEventListener('click', sendMessage);
 
+      function setSendingState(sending) {
+        isSending = sending;
+        sendBtn.disabled = sending;
+        messageEl.disabled = sending;
+        nameEl.disabled = sending;
+        if (sending) {
+          sendBtn.style.opacity = '0.7';
+          sendBtn.style.pointerEvents = 'none';
+        } else {
+          sendBtn.style.opacity = '';
+          sendBtn.style.pointerEvents = '';
+        }
+      }
+
       function showError(msg) {
         errorToast.textContent = msg;
         errorToast.classList.add('show');
@@ -561,6 +575,7 @@
       }
 
       let currentUserName = '';
+      let isSending = false;
 
       async function loadMessages() {
         const base = getBase();
@@ -619,6 +634,8 @@
       }
 
       async function sendMessage() {
+        if (isSending) return;
+
         const base = getBase();
         const name = nameEl.value.trim();
         const message = messageEl.value.trim();
@@ -634,21 +651,29 @@
         }
         if (!message) return;
 
-        sendBtn.style.opacity = '0.4';
-        sendBtn.style.pointerEvents = 'none';
+        setSendingState(true);
+
+        // optimistic bubble with subtle pending state
+        const optimisticId = `pending-${Date.now()}`;
+        const optimisticTime = new Date().toISOString();
+        listEl.insertAdjacentHTML('beforeend', `
+          <div class="msg msg-self" id="${optimisticId}" style="opacity:.72; transform: translateY(6px); transition: all .18s ease;">
+            <div class="msg-bubble">
+              <div class="msg-text">${escapeHtml(message)}</div>
+            </div>
+            <div class="msg-time">sending…</div>
+          </div>
+        `);
+        requestAnimationFrame(() => {
+          const el = document.getElementById(optimisticId);
+          if (el) {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+          }
+        });
+        messagesArea.scrollTop = messagesArea.scrollHeight;
 
         try {
-          const optimisticTime = new Date().toISOString();
-          listEl.insertAdjacentHTML('beforeend', `
-            <div class="msg msg-self">
-              <div class="msg-bubble">
-                <div class="msg-text">${escapeHtml(message)}</div>
-              </div>
-              <div class="msg-time">${formatTime(optimisticTime)}</div>
-            </div>
-          `);
-          messagesArea.scrollTop = messagesArea.scrollHeight;
-
           const res = await fetch(base + '/api/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -663,13 +688,17 @@
           messageEl.value = '';
           messageEl.style.height = 'auto';
           sendBtn.classList.remove('active');
-          loadMessages();
+
+          // replace pending by reloading canonical list
+          await loadMessages();
         } catch (err) {
+          const pending = document.getElementById(optimisticId);
+          if (pending) pending.remove();
           showError(err.message || 'Failed to send message');
-          loadMessages();
+          await loadMessages();
         } finally {
-          sendBtn.style.opacity = '';
-          sendBtn.style.pointerEvents = '';
+          setSendingState(false);
+          messageEl.focus();
         }
       }
 
